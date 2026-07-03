@@ -1,0 +1,68 @@
+name: Leak Repro (per-file Metro graph)
+
+# Reproduces the per-test-FILE memory leak in CI on the cheap chromium runner
+# (no macOS/Xcode needed): generate many empty render(<View/>) files, run them
+# under a low heap cap, and watch the runner OOM as Metro retains one dependency
+# graph per file. Expected to FAIL on this (fix-free) branch.
+
+on:
+  push:
+    branches:
+      - repro/per-file-metro-graph-leak
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  leak-repro-web:
+    name: Reproduce per-file OOM (chromium)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    env:
+      HARNESS_DEBUG: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.10.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build packages
+        run: pnpm nx run-many -t build --projects="packages/*"
+
+      - name: Generate empty leak-repro test files
+        working-directory: apps/playground
+        run: LEAK_FILES=150 node scripts/generate-leak-repro.mjs
+
+      - name: Run React Native Harness (expect OOM)
+        uses: ./
+        # Cap only the harness run; the build above uses the default heap. A low
+        # cap makes the per-file graph accumulation OOM within a few dozen files.
+        env:
+          NODE_OPTIONS: '--max-old-space-size=512'
+        with:
+          runner: chromium
+          projectRoot: apps/playground
+          harnessArgs: '--config jest.harness.leak.config.mjs'
+
+      - name: Upload Harness logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: harness-logs-leak-repro
+          path: apps/playground/.harness/logs
+          if-no-files-found: ignore
