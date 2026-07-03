@@ -122,7 +122,9 @@ export default {
 
   permissions: true,
   detectNativeCrashes: true,
-  resetEnvironmentBetweenTestFiles: true,
+  // repro branch: keep the app alive between files so many files churn fast
+  // (the per-file Metro-graph leak is node-side and reproduces either way).
+  resetEnvironmentBetweenTestFiles: false,
   unstable__enableMetroCache: true,
   unstable__skipAlreadyIncludedModules: false,
   forwardClientLogs: true,

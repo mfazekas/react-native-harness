@@ -46,14 +46,15 @@ jobs:
 
       - name: Generate empty leak-repro test files
         working-directory: apps/playground
-        run: LEAK_FILES=150 node scripts/generate-leak-repro.mjs
+        run: LEAK_FILES=300 node scripts/generate-leak-repro.mjs
 
       - name: Run React Native Harness (expect OOM)
         uses: ./
-        # Cap only the harness run; the build above uses the default heap. A low
-        # cap makes the per-file graph accumulation OOM within a few dozen files.
+        # Cap only the harness run (the build above uses the default heap). The
+        # cap is well above the single-file baseline so the harness boots, but
+        # low enough that the per-file graph accumulation OOMs within the run.
         env:
-          NODE_OPTIONS: '--max-old-space-size=512'
+          NODE_OPTIONS: '--max-old-space-size=1536'
         with:
           runner: chromium
           projectRoot: apps/playground
