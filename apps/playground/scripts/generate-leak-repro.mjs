@@ -1,11 +1,5 @@
-// Generates N empty Harness test files to reproduce the per-test-FILE memory
-// leak in the Harness node runner: each test file is fetched from Metro as its
-// own bundle entry point, and Metro retains one dependency graph per entry for
-// the whole run, so RSS climbs ~one graph per file until the runner OOMs.
-//
-// The files render only <View/> + cleanup() — no app traffic, no promises — to
-// show the leak scales with the number of FILES, not with runtime activity.
-//
+// Generates N empty render(<View/>) Harness test files to reproduce the
+// per-test-FILE runner OOM. See LEAK_REPRO.md.
 // Usage: LEAK_FILES=40 node scripts/generate-leak-repro.mjs
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
